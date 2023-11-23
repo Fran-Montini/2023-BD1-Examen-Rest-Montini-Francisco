@@ -1,0 +1,104 @@
+@api_view(["GET"])
+def punto1(request):
+    letra = request.query_params.get("letter")
+    year = request.query_params.get("year")
+
+    empleadosFiltrados = Employees.objects.filter(firstname__icontains = letra)
+    resultados = []
+    for e in empleadosFiltrados:
+        resultado = {
+            "id" : e.employeeid,
+            "nombre" : e.firstname,
+            "apellido" : e.lastname,
+            "birthdate" : e.birthdate
+        }
+        if e.birthdate.year <= int(year):
+            resultados.append(resultado)
+    serializados = Punto1Serializer(resultados, many=True)
+    return Response(serializados.data)
+
+
+class Punto1Serializer(serializers.Serializer):
+   id = serializers.IntegerField()
+   apellido = serializers.CharField()
+   nombre = serializers.CharField()
+   birthdate = serializers.DateTimeField()
+   
+
+
+
+
+
+
+
+   # services.py
+
+from django.db.models import F, Sum
+from .models import Product
+
+class ProductService:
+    def get_products_by_supplier_category_stock(self, supplier_id, category_id, stock_min):
+        try:
+            products = Product.objects.filter(
+                SupplierID=supplier_id,
+                CategoryID=category_id,
+                Discontinued='0'
+            ).annotate(
+                stockFuturo=Sum(F('UnitsInStock') + F('UnitsOnOrder'))
+            ).filter(stockFuturo__lt=stock_min).order_by('stockFuturo')
+
+            return products
+
+        except Product.DoesNotExist:
+            return None
+
+# views.py
+
+from django.http import JsonResponse
+from .services import ProductService
+
+def get_products(request):
+    supplier_id = request.GET.get('supplierid')
+    category_id = request.GET.get('categoryid')
+    stock_min = request.GET.get('stockmin')
+
+    if not supplier_id or not category_id or not stock_min:
+        return JsonResponse({'error': 'Missing parameters'}, status=400)
+
+    try:
+        supplier_id = int(supplier_id)
+        category_id = int(category_id)
+        stock_min = int(stock_min)
+    except ValueError:
+        return JsonResponse({'error': 'Invalid parameters'}, status=400)
+
+    product_service = ProductService()
+    products = product_service.get_products_by_supplier_category_stock(
+        supplier_id, category_id, stock_min)
+
+    if products is not None:
+        if products.exists():
+            result = [
+                {
+                    'ProductId': product.ProductID,
+                    'ProductName': product.ProductName,
+                    'stockFuturo': product.stockFuturo,
+                    'UnitPrice': product.UnitPrice
+                }
+                for product in products
+            ]
+            return JsonResponse({'products': result}, status=200)
+        else:
+            return JsonResponse({'message': 'No products meet the condition'}, status=204)
+    else:
+        return JsonResponse({'error': 'Supplier or category not found'}, status=404)
+
+# urls.py
+
+from django.urls import path
+from .views import get_products
+
+urlpatterns = [
+    path('api/productos/', get_products, name='get_products'),
+    # Agrega otras URLs si es necesario
+]
