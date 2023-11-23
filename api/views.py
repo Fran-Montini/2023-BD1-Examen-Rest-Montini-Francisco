@@ -6,6 +6,8 @@ from django.http import HttpResponse
 from .models import *
 from django.http import JsonResponse
 
+from django.http import JsonResponse
+
 # Create your views here.
 @api_view(["GET", "POST"])
 def getAllCustomers(request):
@@ -298,46 +300,22 @@ def get_orders_with_details(request):
 
 
 
-@api_view(["POST"])
-def create_order_with_details(request):
-    provedor = Suppliers.objects.filter(supplierid = request.data)
-    Categoria = Categories.objects.filter(categoryid = request.data)
-    stockRequerido = Products.objects.filter()
-    order_serializer = OrderSerializer(data=request.data)
-    if order_serializer.is_valid():
-        order = order_serializer.save()
-        order_details_data = request.data.get('order_details', [])
-        for order_detail_data in order_details_data:
-            order_detail_data['order'] = order.id
-            order_detail_serializer = OrderdetailSerializer(data=order_detail_data)
-            
-            if order_detail_serializer.is_valid():
-                order_detail_serializer.save()
-            else:
-                order.delete()
-                return Response(order_detail_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        return Response(order_serializer.data, status=status.HTTP_201_CREATED)
-    return Response(order_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+@api_view(["GET"])
+def punto1(request):
+    letra = request.query_params.get("letter")
+    year = request.query_params.get("year")
 
+    empleadosFiltrados = Employees.objects.filter(firstname__icontains = letra)
+    resultados = []
+    for e in empleadosFiltrados:
+        resultado = {
+            "id" : e.employeeid,
+            "nombre" : e.firstname,
+            "apellido" : e.lastname,
+            "birthdate" : e.birthdate
+        }
+        if e.birthdate.year >= int(year):
+            resultados.append(resultado)
+    serializados = Punto1Serializer(resultados, many=True)
+    return Response(serializados.data)
 
-@api_view(['GET'])
-def productos(request):
-    supplierid = request.GET.get('supplierid')
-    categoriaid = request.GET.get('categoryid')
-    stockmin = request.GET.get('stockmin')
-
-    try:
-        supplier = Suppliers.objects.get(pk=supplierid)
-        category = Categories.objects.get(pk=categoriaid)
-    except:
-        return None
-
-    productos = Products.objects.filter(supplier=supplier, category=category).exclude(discontinued=1)
-    productos = productos.annotate(stock_futuro=F('unitsinstock') + F('unitsonorder')).filter(stock_futuro__lt=stockmin)
-    productos = productos.order_by('stock_futuro')
-
-    if not productos:
-        return None
-
-    serializer = ProductSerializer(productos, many=True)
-    return None
