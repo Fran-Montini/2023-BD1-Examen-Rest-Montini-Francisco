@@ -37,7 +37,6 @@ class Customerdemographics(models.Model):
         managed = False
         db_table = 'CustomerDemographics'
 
-
 class Customers(models.Model):
     customerid = models.CharField(db_column='CustomerID', primary_key=True, max_length=5)  # Field name made lowercase.
     companyname = models.CharField(db_column='CompanyName', max_length=40)  # Field name made lowercase.
@@ -87,6 +86,8 @@ class Employees(models.Model):
     photopath = models.CharField(db_column='PhotoPath', max_length=255, blank=True, null=True)  # Field name made lowercase.
     salary = models.FloatField(db_column='Salary', blank=True, null=True)  # Field name made lowercase.
 
+    def __str__(self):
+        return self.firstname + " " + self.lastname + " - " + str(self.birthdate)
     class Meta:
         managed = False
         db_table = 'Employees'
@@ -107,7 +108,7 @@ class Orderdetails(models.Model):
 
 class Orders(models.Model):
     orderid = models.AutoField(db_column='OrderID', primary_key=True)  # Field name made lowercase.
-    customerid = models.ForeignKey(Customers, models.DO_NOTHING, db_column='CustomerID', blank=True, null=True)  # Field name made lowercase.
+    customerid = models.ForeignKey(Customers, on_delete=models.CASCADE, db_column='CustomerID', blank=True, null=True)  # Field name made lowercase.
     employeeid = models.ForeignKey(Employees, models.DO_NOTHING, db_column='EmployeeID', blank=True, null=True)  # Field name made lowercase.
     orderdate = models.DateTimeField(db_column='OrderDate', blank=True, null=True)  # Field name made lowercase.
     requireddate = models.DateTimeField(db_column='RequiredDate', blank=True, null=True)  # Field name made lowercase.
@@ -120,7 +121,8 @@ class Orders(models.Model):
     shipregion = models.CharField(db_column='ShipRegion', max_length=15, blank=True, null=True)  # Field name made lowercase.
     shippostalcode = models.CharField(db_column='ShipPostalCode', max_length=10, blank=True, null=True)  # Field name made lowercase.
     shipcountry = models.CharField(db_column='ShipCountry', max_length=15, blank=True, null=True)  # Field name made lowercase.
-
+    def __str__(self):
+        return f"{self.orderid} - {self.customerid}"
     class Meta:
         managed = False
         db_table = 'Orders'

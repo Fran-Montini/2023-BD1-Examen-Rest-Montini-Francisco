@@ -1,15 +1,18 @@
+
 from rest_framework.serializers import ModelSerializer
 from rest_framework import serializers
 from .models import Customers, Suppliers, Categories, Products, Orders, Orderdetails, Employees
+from .models import Customers
 
 class SerializadorPadre(ModelSerializer):
     class Meta:
         fields = '__all__'
 
-class CustomerSerializer(SerializadorPadre):
+class CustomerSerializer(serializers.ModelSerializer):
     class Meta:
         model = Customers
         fields = '__all__'
+
 
 class SupplierSerializer(SerializadorPadre):
     class Meta:
@@ -43,7 +46,12 @@ class EmployeeSerializer (SerializadorPadre):
       model = Employees
       fields = '__all__'
 
-
+class Punto1Serializer(serializers.Serializer):
+   id = serializers.IntegerField()
+   apellido = serializers.CharField()
+   nombre = serializers.CharField()
+   birthdate = serializers.DateTimeField()
+   
 #class Punto1Serializer(serializers.Serializer):
 #    id = serializers.IntegerField()
 #    apellido = serializers.CharField(max_length=50)

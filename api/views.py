@@ -3,22 +3,20 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
 from django.http import HttpResponse
-from .models import Customers, Suppliers, Categories, Products, Orders, Orderdetails, Employees
-
-
-# --- COSTUMERS ------------------------------------------------------------------------------------
+from .models import *
+# Create your views here.
 @api_view(["GET", "POST"])
 def getAllCustomers(request):
-    if request.method == "GET":
-        #customers = Customers.objects.all()         
-        customers = Customers.objects.filter(contactname__startswith = 'M')[:4]
+    if request.method == "GET":         
+        customers = Customers.objects.all()
         customersSerializers = CustomerSerializer(customers, many=True)
         return Response(customersSerializers.data, status=status.HTTP_200_OK)
     elif request.method == "POST":
         customerNuevo = CustomerSerializer(data = request.data)
+
         if customerNuevo.is_valid():
             customerNuevo.save()
-            return Response(customerNuevo.data, status=status.HTTP_200_OK)
+            return Response(customerNuevo.data, status=status.HTTP_202_ACCEPTED)
         return Response(customerNuevo.errors ,status=status.HTTP_400_BAD_REQUEST)
     
 @api_view(["GET", "PUT", "DELETE"])
@@ -31,18 +29,24 @@ def getCustomerById(request, pk):
         serializer = CustomerSerializer(customer)
         return Response(serializer.data, status=status.HTTP_200_OK)
     if request.method == 'PUT':
+
         request.data['customerid'] = pk
-    
+
+
+        if 'companyname' not in request.data:
+            request.data['companyname'] = customer.companyname
+        
         serializer = CustomerSerializer(customer, data=request.data)
         if serializer.is_valid():
             serializer.save()
-            return Response(serializer.data)
+            return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     if request.method == 'DELETE':
+        # borrar el customer seleccionado y ademas borrar todas las Orders que dependan de ese customer
         customer.delete()
         return Response(status=status.HTTP_200_OK)
-
-# --- SUPPLIERS ------------------------------------------------------------------------------------
+    
+    # --- SUPPLIERS ------------------------------------------------------------------------------------
 @api_view(["GET", "POST"])
 def getAllSuppliers(request):
     if request.method == "GET":         
@@ -85,6 +89,7 @@ def getAllCategories(request):
         categoriesSerializers = CategorieSerializer(categories, many=True)
         return Response(categoriesSerializers.data, status=status.HTTP_200_OK)
     elif request.method == "POST":
+
         categorieNuevo = CategorieSerializer(data = request.data)
         if categorieNuevo.is_valid():
             categorieNuevo.save()
@@ -98,7 +103,7 @@ def getCategoryById(request, pk):
     except Exception:
         return Response(status=status.HTTP_204_NO_CONTENT)
     if request.method == 'GET':
-        serializer = CategorieSerializer(supplier)
+        serializer = CategorieSerializer(categorie)
         return Response(serializer.data, status=status.HTTP_200_OK)
     if request.method == 'PUT':
         request.data['categoryid'] = pk
@@ -273,7 +278,8 @@ def create_order_with_details(request):
         order_details_data = request.data.get('order_details', [])
         for order_detail_data in order_details_data:
             order_detail_data['order'] = order.id
-            order_detail_serializer = OrderDetailSerializer(data=order_detail_data)
+            order_detail_serializer = OrderdetailSerializer(data=order_detail_data)
+            
             if order_detail_serializer.is_valid():
                 order_detail_serializer.save()
             else:
@@ -284,17 +290,26 @@ def create_order_with_details(request):
 
 @api_view(["GET"])
 def get_orders_with_details(request):
-    orders = Order.objects.all()
+    orders = Orders.objects.all()
     order_serializer = OrderSerializer(orders, many=True)
     return Response(order_serializer.data, status=status.HTTP_200_OK)
 
-#clientes = Clientes.objects.all()[:4]
-#clientes = Clientes.objects.all().order_by('nombre', 'altura')
-#clientes = Clientes.objects.all()
-#clientes = Clientes.objects.filter(apellido='ALONSO')
-#clientes = Clientes.objects.filter(cod_cliente__gte=5)
-#clientes = Clientes.objects.filter(apellido__startswith = 'A')
-#clientes = Clientes.objects.filter(nombre__startswith = 'A', cod_condicion_iva__gte=2 )
-#clientes = Clientes.objects.filter(Q(apellido__startswith = 'M') |Q(apellido__startswith = 'C') )
-#serializados = ClientesSerializer(clientes,many = True)
-#return Response(serializados.data)
+@api_view(["GET"])
+def punto1(request):
+    letra = request.query_params.get("letter")
+    year = request.query_params.get("year")
+
+    empleadosFiltrados = Employees.objects.filter(firstname__icontains = letra)
+    resultados = []
+    for e in empleadosFiltrados:
+        resultado = {
+            "id" : e.employeeid,
+            "nombre" : e.firstname,
+            "apellido" : e.lastname,
+            "birthdate" : e.birthdate
+        }
+        if e.birthdate.year >= int(year):
+            resultados.append(resultado)
+    serializados = Punto1Serializer(resultados, many=True)
+    return Response(serializados.data)
+

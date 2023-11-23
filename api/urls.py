@@ -20,9 +20,9 @@ urlpatterns = [
     path("orderdetail/", getAllOrderDetails, name="getAllOrderDetails"),
     path("orderdetail/<str:pk>/", getOrderDetailById, name="getOrderDetailById"),
 
-    path("employee/", getAllEmployees, name="getAllEmployees"),
-    path("employee/<str:pk>/", getEmployeeById, name="getEmployeeById"),
+    path("employees/", getAllEmployees, name="getAllEmployees"),
+    path("employees/<str:pk>/", getEmployeeById, name="getEmployeeById"),
 
-    #pruebas
-    path("test/", create_order_with_details, name="test"),
+    path("punto1/", punto1)
+    
 ]
